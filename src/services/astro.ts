@@ -74,7 +74,7 @@ const ASPECTS: Record<AspectType, { angle: number; orb: number }> = {
 };
 
 function angleDiff(a: number, b: number): number {
-  let d = Math.abs(((a - b + 540) % 360) - 180);
+  const d = Math.abs(((a - b + 540) % 360) - 180);
   return d;
 }
 

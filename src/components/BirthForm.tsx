@@ -24,6 +24,17 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
+type UserProfileDoc = {
+  name?: string;
+  dob?: string;    // "YYYY-MM-DD"
+  time?: string;   // "HH:mm"
+  place?: string;
+  timezone?: (typeof TZ_OPTS)[number];
+  zodiacSign?: (typeof SIGNS)[number];
+  createdAt?: unknown;
+  updatedAt?: unknown;
+};
+
 export default function BirthForm() {
   const { user } = useAuthUser();
   const [loading, setLoading] = useState(true);
@@ -36,7 +47,7 @@ export default function BirthForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { timezone: "UTC+05:30" } as Partial<FormValues>,
+    defaultValues: { timezone: "UTC+05:30" },
   });
 
   useEffect(() => {
@@ -46,12 +57,15 @@ export default function BirthForm() {
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
       if (alive && snap.exists()) {
-        const d = snap.data() as any;
-        ["name", "dob", "time", "place"].forEach((k) =>
-          setValue(k as any, d[k] || "")
-        );
+        const data = snap.data() as Partial<UserProfileDoc>;
+        const preloadKeys: Array<keyof FormValues> = ["name", "dob", "time", "place"];
+        preloadKeys.forEach((k) => {
+          const val = data[k];
+          setValue(k, (typeof val === "string" ? val : "") as FormValues[typeof k]);
+        });
+        // lock to IST for now
         setValue("timezone", "UTC+05:30");
-        if (d.zodiacSign) setValue("zodiacSign", d.zodiacSign);
+        if (data.zodiacSign) setValue("zodiacSign", data.zodiacSign);
       }
       setLoading(false);
     })();

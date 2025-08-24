@@ -12,20 +12,23 @@ import {
   getDocs,
   doc,
   getDoc,
+  Timestamp,
+  FieldValue,
 } from "firebase/firestore";
 import { db } from "@/services/firebase";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import botReply, { smartBotReply } from "@/services/bot";
+import { botReply, smartBotReply } from "@/services/bot"; // use named exports
 import { motion, AnimatePresence } from "framer-motion";
 import { Send } from "lucide-react";
 
-type ChatMessage = {
-  id?: string;
+type ChatMessageFS = {
   senderId: string;
   senderType: "user" | "bot";
   text: string;
-  createdAt: any;
+  createdAt: Timestamp | FieldValue;
 };
+
+type ChatMessage = ChatMessageFS & { id: string };
 
 export default function ChatWindow() {
   const { user, initializing } = useAuthUser();
@@ -37,13 +40,12 @@ export default function ChatWindow() {
   const [natalISO, setNatalISO] = useState<string | undefined>(undefined);
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  // ensure a room
   useEffect(() => {
     if (!uid) return;
     (async () => {
       const rooms = collection(db, "chats");
-      const existing = await getDocs(
-        query(rooms, where("participants", "array-contains", uid))
-      );
+      const existing = await getDocs(query(rooms, where("participants", "array-contains", uid)));
       if (!existing.empty) {
         setRoomId(existing.docs[0].id);
         return;
@@ -56,13 +58,18 @@ export default function ChatWindow() {
     })();
   }, [uid]);
 
+  // load profile bits
   useEffect(() => {
     let alive = true;
     (async () => {
       if (!uid) return;
       const profile = await getDoc(doc(db, "users", uid));
       if (alive && profile.exists()) {
-        const data = profile.data();
+        const data = profile.data() as {
+          zodiacSign?: string;
+          dob?: string;
+          time?: string;
+        };
         if (data?.zodiacSign) setSign(data.zodiacSign);
         if (data?.dob && data?.time) {
           setNatalISO(`${data.dob}T${data.time}:00`);
@@ -74,13 +81,17 @@ export default function ChatWindow() {
     };
   }, [uid]);
 
+  // subscribe to messages
   useEffect(() => {
     if (!roomId) return;
     const msgsCol = collection(db, "chats", roomId, "messages");
     const q = query(msgsCol, orderBy("createdAt", "asc"));
     const unsub = onSnapshot(q, (snap) => {
       const list: ChatMessage[] = [];
-      snap.forEach((d) => list.push({ id: d.id, ...(d.data() as any) }));
+      snap.forEach((d) => {
+        const data = d.data() as ChatMessageFS;
+        list.push({ id: d.id, ...data });
+      });
       setMessages(list);
       requestAnimationFrame(() => {
         viewportRef.current?.scrollTo({
@@ -111,7 +122,7 @@ export default function ChatWindow() {
 
     setTimeout(async () => {
       await addDoc(msgsCol, {
-        senderId: uid,
+        senderId: uid, // keeps rules simple
         senderType: "bot",
         text: reply,
         createdAt: serverTimestamp(),
@@ -132,7 +143,7 @@ export default function ChatWindow() {
       <div
         ref={viewportRef}
         data-lenis-prevent
-        className=" scrollbar-hide flex-1 space-y-3 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent"
+        className="scrollbar-hide flex-1 space-y-3 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent"
       >
         {messages.length === 0 && (
           <div className="mt-20 text-center text-sm text-neutral-500">

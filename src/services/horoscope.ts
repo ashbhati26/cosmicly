@@ -1,4 +1,4 @@
-import { buildNatal, computeLongitudes, findTransitAspects } from "./astro";
+import { buildNatal, computeLongitudes, findTransitAspects, Zodiac } from "./astro";
 import { assembleDaily } from "./interpretation";
 
 export type Period = "daily" | "weekly" | "monthly";
@@ -13,7 +13,11 @@ export async function getHoroscope(sign: string, period: Period, natalISO?: stri
     const longitudes: Record<string, number> = {};
     const signIndex = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"].indexOf(sign) || 0;
     longitudes["Sun"] = signIndex * 30 + 15;
-    natal = { dateISO: dummyDate.toISOString(), longitudes, signs: { Sun: sign as any } };
+    natal = {
+  dateISO: dummyDate.toISOString(),
+  longitudes,
+  signs: { Sun: sign as Zodiac },
+};
   }
 
   const transitLongitudes = computeLongitudes(nowISO);

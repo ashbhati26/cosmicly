@@ -77,7 +77,9 @@ function HoroscopeInner() {
         if (alive) setContent(h.content);
       } catch {
         if (alive)
-          setContent("Couldn't generate horoscope right now. Please try again.");
+          setContent(
+            "Couldn't generate horoscope right now. Please try again."
+          );
       } finally {
         if (alive) setFetching(false);
       }
@@ -102,8 +104,9 @@ function HoroscopeInner() {
         createdAt: serverTimestamp(),
       });
       alert("Saved report ✅");
-    } catch (e: any) {
-      alert(e?.message || "Failed to save report");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save report";
+      alert(msg);
     }
   };
 
@@ -218,14 +221,21 @@ function HoroscopeInner() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 140, damping: 20, delay: 0.05 }}
+        transition={{
+          type: "spring",
+          stiffness: 140,
+          damping: 20,
+          delay: 0.05,
+        }}
         className="mt-8 w-full max-w-3xl"
       >
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 shadow-xl">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-white">Natal Chart</h3>
             <span className="text-xs text-neutral-400">
-              {natalISO ? `Based on ${natalISO} (IST)` : "Birth details missing"}
+              {natalISO
+                ? `Based on ${natalISO} (IST)`
+                : "Birth details missing"}
             </span>
           </div>
 
